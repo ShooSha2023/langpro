@@ -1,12 +1,12 @@
-// ignore_for_file: non_constant_identifier_names
-
 import 'package:flutter/material.dart';
 import 'package:pro/Shared/AppBar.dart';
 import 'package:pro/model/item.dart';
 import 'package:pro/model/store.dart';
 import 'package:pro/pages/SearchPageProduct.dart';
 import 'package:pro/pages/details_screen.dart';
-import 'package:pro/provider/cart.dart';
+import 'package:pro/provider/cartProvider.dart';
+import 'package:pro/provider/favProvider.dart';
+import 'package:pro/services/api_service.dart';
 import 'package:provider/provider.dart';
 
 class Home2 extends StatefulWidget {
@@ -19,43 +19,31 @@ class Home2 extends StatefulWidget {
 
 class _Home2State extends State<Home2> {
   TextEditingController _searchController = TextEditingController();
-  List<Item> filteredItems = [];
+  late Future<List<Item>> futureItems;
+  List<int> favoriteIds = []; // قائمة لتخزين معرفات العناصر المفضلة
 
   @override
   void initState() {
     super.initState();
-    filteredItems = getItemsForStore(widget.store.id);
+    futureItems = ProductsService.fetchItems(widget.store.id);
     _searchController.addListener(() {
-      setState(() {
-        filteredItems = getItemsForStore(widget.store.id)
-            .where((item) => item.name
-                .toLowerCase()
-                .contains(_searchController.text.toLowerCase()))
-            .toList();
-      });
+      setState(() {});
     });
-  }
-
-  List<Item> getItemsForStore(int storeId) {
-    return items.where((item) => item.storeId == storeId).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final Cartt = Provider.of<Cart>(context);
+    final Cartt = Provider.of<CartProvider>(context);
+    final Fav = Provider.of<Favorites>(context);
     return Scaffold(
       backgroundColor: Colors.orange[50],
       appBar: AppBar(
         backgroundColor: Colors.orange,
         title: Text(
           widget.store.name,
-          style: TextStyle(
-            fontSize: 18,
-          ),
+          style: TextStyle(fontSize: 18),
         ),
-        actions: [
-          ProductsAndPrice(),
-        ],
+        actions: [ProductsAndPrice()],
       ),
       body: Padding(
         padding: const EdgeInsets.all(10.0),
@@ -65,11 +53,12 @@ class _Home2State extends State<Home2> {
               readOnly: true,
               onTap: () {
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          SearchProductsPage(store: widget.store),
-                    ));
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        SearchProductsPage(store: widget.store),
+                  ),
+                );
               },
               decoration: InputDecoration(
                 hintText: 'Search for products...',
@@ -88,27 +77,44 @@ class _Home2State extends State<Home2> {
             ),
             const SizedBox(height: 10),
             Expanded(
-              child: filteredItems.isEmpty
-                  ? Center(
+              child: FutureBuilder<List<Item>>(
+                future: futureItems,
+                builder:
+                    (BuildContext context, AsyncSnapshot<List<Item>> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'Failed to load products: ${snapshot.error}',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    );
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(
                       child: Text(
                         'No products found!',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                       ),
-                    )
-                  : ListView.builder(
+                    );
+                  } else {
+                    final filteredItems = snapshot.data!;
+                    return ListView.builder(
                       itemCount: filteredItems.length,
                       itemBuilder: (BuildContext context, int index) {
                         final item = filteredItems[index];
+                        bool isFavorite = favoriteIds
+                            .contains(item.id); // تحقق إذا كان مفضلًا
+
                         return GestureDetector(
                           onTap: () {
                             Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        Details(product: item)));
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    Details(productId: item.id),
+                              ),
+                            );
                           },
                           child: Card(
                             margin: const EdgeInsets.symmetric(
@@ -128,8 +134,8 @@ class _Home2State extends State<Home2> {
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Image.asset(
-                                    item.imgPath,
+                                  child: Image.network(
+                                    item.photo,
                                     width: 80,
                                     height: 80,
                                     fit: BoxFit.fitHeight,
@@ -138,17 +144,45 @@ class _Home2State extends State<Home2> {
                               ),
                               title: Text(item.name),
                               subtitle: Text(item.price.toString()),
-                              trailing: IconButton(
-                                icon: Icon(Icons.add),
-                                onPressed: () {
-                                  Cartt.add(item);
-                                },
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      Fav.isFavorite(item.id)
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: Fav.isFavorite(item.id)
+                                          ? Colors.red
+                                          : null,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        if (Fav.isFavorite(item.id)) {
+                                          Fav.removeFromFavorites(item);
+                                        } else {
+                                          Fav.addToFavorites(item.id);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.add),
+                                    onPressed: () {
+                                      int amount = 1;
+                                      Cartt.addItem(item, amount);
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         );
                       },
-                    ),
+                    );
+                  }
+                },
+              ),
             ),
           ],
         ),

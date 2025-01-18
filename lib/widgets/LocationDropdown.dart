@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 class LocationDropdown extends StatefulWidget {
   final List<String> locations;
   final void Function(String) onLocationChanged;
+  final String? defaultValue; // إضافة معامل اختياري للقيمة الافتراضية
 
   const LocationDropdown({
     required this.locations,
     required this.onLocationChanged,
+    this.defaultValue, // القيمة الافتراضية
     super.key,
   });
 
@@ -20,12 +22,14 @@ class LocationDropdownState extends State<LocationDropdown> {
   @override
   void initState() {
     super.initState();
+    // تعيين القيمة الافتراضية إذا كانت موجودة
+    selectedLocation = widget.defaultValue;
   }
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: selectedLocation,
+      value: selectedLocation, // تعيين القيمة المحددة
       items: widget.locations
           .map((location) => DropdownMenuItem(
                 value: location,

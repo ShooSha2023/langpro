@@ -8,9 +8,16 @@ Widget buildTextField({
   required IconData icon,
   TextInputType? keyboardType,
   List<TextInputFormatter>? inputFormatters,
+  String? initialValue,
+  Function(dynamic value)? onChanged,
+  bool? enabled, // تعديل الـ onChanged ليكون غير فارغ
 }) {
+  // إذا كان الـ controller فارغًا، قم بإنشاء واحد مع القيمة الأولية.
+  controller ??= TextEditingController(text: initialValue);
+
   return TextField(
     controller: controller,
+    enabled: enabled,
     keyboardType: keyboardType,
     inputFormatters: inputFormatters,
     style: TextStyle(color: Color(0xFFEF6C00)),
@@ -29,5 +36,6 @@ Widget buildTextField({
         borderSide: BorderSide(color: Colors.orange),
       ),
     ),
+    onChanged: onChanged, // لا تنسى استخدام onChanged إذا كنت تحتاجه
   );
 }

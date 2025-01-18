@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pro/pages/login_screen.dart';
-import 'package:pro/provider/cart.dart';
+import 'package:pro/provider/cartProvider.dart';
+import 'package:pro/provider/favProvider.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -12,10 +13,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) {
-        return Cart();
-      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => CartProvider()),
+        ChangeNotifierProvider(create: (context) => Favorites()),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         home: LoginScreen(),

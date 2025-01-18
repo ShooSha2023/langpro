@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pro/pages/MainScreen.dart';
 import 'package:pro/pages/RegisterScreen.dart';
+import 'package:pro/services/api_service.dart';
 import 'package:pro/widgets/buildTextField.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,6 +14,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  String? _errorMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 30),
                 buildTextField(
+                  controller: _phoneController,
                   label: 'Phone number',
                   hintText: 'Enter your phone number',
                   icon: Icons.person_3_rounded,
@@ -61,12 +67,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: 16.0),
                 TextField(
+                  controller: _passwordController,
                   obscureText: !_isPasswordVisible,
                   style: TextStyle(color: Color(0xFFEF6C00)),
                   decoration: InputDecoration(
                     labelText: 'Password',
                     labelStyle: TextStyle(color: Color(0xFFEF6C00)),
-                    hintText: 'Create your password',
+                    hintText: 'Enter your password',
                     prefixIcon: const Icon(Icons.lock_person_outlined,
                         color: Colors.orange),
                     suffixIcon: IconButton(
@@ -93,15 +100,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 24.0),
+                SizedBox(height: 16.0),
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => MainScreen()),
-                      (Route<dynamic> route) => false,
-                    );
-                  },
+                  onPressed: _isLoading ? null : _loginUser,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color.fromARGB(255, 255, 136, 0),
                     padding: const EdgeInsets.symmetric(vertical: 15),
@@ -110,14 +119,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     textStyle: const TextStyle(fontSize: 16),
                   ),
-                  child: const Center(
-                    child: Text(
-                      "Sign in",
-                      style: TextStyle(
-                        color: Color.fromARGB(255, 255, 235, 235),
-                      ),
-                    ),
-                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : const Center(
+                          child: Text(
+                            "Sign in",
+                            style: TextStyle(
+                              color: Color.fromARGB(255, 255, 235, 235),
+                            ),
+                          ),
+                        ),
                 ),
                 SizedBox(height: 16.0),
                 Row(
@@ -144,6 +155,42 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _loginUser() async {
+    final phone = _phoneController.text;
+    final password = _passwordController.text;
+
+    if (phone.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = "Please enter both phone and password.";
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    bool success =
+        await LoginService.loginUser(phone: phone, password: password);
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (success) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => MainScreen()),
+        (Route<dynamic> route) => false,
+      );
+    } else {
+      setState(() {
+        _errorMessage = "Login failed. Please try again.";
+      });
+    }
   }
 
   Route _createRoute() {

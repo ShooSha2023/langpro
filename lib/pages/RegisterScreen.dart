@@ -4,6 +4,7 @@ import 'package:pro/pages/MainScreen.dart';
 import 'package:pro/pages/login_screen.dart';
 import 'package:pro/widgets/LocationDropdown.dart';
 import 'package:pro/widgets/buildTextField.dart';
+import 'package:pro/services/api_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -14,8 +15,17 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   bool _isPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-  String? _selectedLocation;
+  late String _government;
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _locationDescriptionController =
+      TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  String? _errorMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const Text(
                     "Sign up",
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Color.fromARGB(255, 255, 136, 0),
                     ),
@@ -54,10 +64,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: Colors.black54,
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 20),
                   Padding(
-                    padding: const EdgeInsets.only(right: 75.0),
+                    padding: const EdgeInsets.only(right: 90),
                     child: buildTextField(
+                      controller: _firstNameController,
                       label: 'First name',
                       hintText: 'enter your first name',
                       icon: Icons.person_outline_outlined,
@@ -65,8 +76,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 10),
                   Padding(
-                    padding: const EdgeInsets.only(right: 45.0),
+                    padding: const EdgeInsets.only(right: 50),
                     child: buildTextField(
+                      controller: _lastNameController,
                       label: 'Last name',
                       hintText: 'enter your last name',
                       icon: Icons.person_outline_outlined,
@@ -74,8 +86,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 10),
                   Padding(
-                    padding: const EdgeInsets.only(right: 15.0),
+                    padding: const EdgeInsets.only(right: 20),
                     child: buildTextField(
+                      controller: _phoneController,
                       label: 'Phone number',
                       hintText: 'enter your Phone number',
                       icon: Icons.phone_iphone_rounded,
@@ -102,90 +115,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                     onLocationChanged: (selectedLocation) {
                       setState(() {
-                        _selectedLocation = selectedLocation;
+                        _government = selectedLocation;
                       });
-                      print('Selected location: $selectedLocation');
                     },
                   ),
                   const SizedBox(height: 10),
-                  TextField(
-                    obscureText: !_isPasswordVisible,
-                    style: TextStyle(color: Color(0xFFEF6C00)),
-                    decoration: InputDecoration(
-                      labelText: 'password',
-                      labelStyle: TextStyle(color: Color(0xFFEF6C00)),
-                      hintText: 'create your password',
-                      prefixIcon: const Icon(Icons.lock_person_outlined,
-                          color: Colors.orange),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                            _isPasswordVisible
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            color: Color(0xFFEF6C00)),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.orange),
-                      ),
-                    ),
+                  buildTextField(
+                    controller: _locationDescriptionController,
+                    label: 'Location Description',
+                    hintText: 'enter your location description',
+                    icon: Icons.location_city_rounded,
                   ),
                   const SizedBox(height: 10),
-                  TextField(
-                    obscureText: !_isConfirmPasswordVisible,
-                    style: TextStyle(color: Color(0xFFEF6C00)),
-                    decoration: InputDecoration(
-                      labelText: 'confirm password',
-                      labelStyle: TextStyle(color: Colors.orange[800]),
-                      hintText: 'reEnter your password',
-                      prefixIcon: const Icon(Icons.lock_person_outlined,
-                          color: Colors.orange),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isConfirmPasswordVisible
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          color: Color(0xFFEF6C00),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isConfirmPasswordVisible =
-                                !_isConfirmPasswordVisible;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.orange),
-                      ),
-                    ),
+                  _buildPasswordField(),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: _buildConfirmPasswordField(),
                   ),
                   const SizedBox(height: 15),
+                  if (_errorMessage != null) ...[
+                    Text(
+                      _errorMessage!,
+                      style: TextStyle(color: Colors.red, fontSize: 14),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    padding: const EdgeInsets.only(left: 25, right: 40),
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => MainScreen()),
-                          (Route<dynamic> route) => false,
-                        );
-                      },
+                      onPressed: _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color.fromARGB(255, 255, 136, 0),
                         padding: const EdgeInsets.all(15),
@@ -204,7 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -222,7 +181,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 const begin = Offset(-1.0, 0.0);
                                 const end = Offset.zero;
                                 const curve = Curves.easeInOut;
-
                                 var tween = Tween(begin: begin, end: end)
                                     .chain(CurveTween(curve: curve));
                                 var offsetAnimation = animation.drive(tween);
@@ -252,5 +210,120 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildPasswordField() {
+    return TextField(
+      controller: _passwordController,
+      obscureText: !_isPasswordVisible,
+      style: TextStyle(color: Color(0xFFEF6C00)),
+      decoration: InputDecoration(
+        labelText: 'password',
+        labelStyle: TextStyle(color: Color(0xFFEF6C00)),
+        hintText: 'create your password',
+        prefixIcon:
+            const Icon(Icons.lock_person_outlined, color: Colors.orange),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+            color: Color(0xFFEF6C00),
+            size: 22,
+          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
+        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        filled: true,
+        fillColor: Colors.white,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.orange),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConfirmPasswordField() {
+    return TextField(
+      controller: _confirmPasswordController,
+      obscureText: !_isPasswordVisible,
+      style: TextStyle(color: Color(0xFFEF6C00)),
+      decoration: InputDecoration(
+        labelText: 'confirm password',
+        labelStyle: TextStyle(color: Colors.orange[800]),
+        hintText: 'reEnter your password',
+        prefixIcon:
+            const Icon(Icons.lock_person_outlined, color: Colors.orange),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        filled: true,
+        fillColor: Colors.white,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.orange),
+        ),
+      ),
+    );
+  }
+
+  void _register() async {
+    setState(() {
+      _errorMessage = null;
+    });
+
+    bool areFieldsFilled = _firstNameController.text.isNotEmpty &&
+        _lastNameController.text.isNotEmpty &&
+        _phoneController.text.isNotEmpty &&
+        _government.isNotEmpty &&
+        _passwordController.text.isNotEmpty &&
+        _confirmPasswordController.text.isNotEmpty;
+
+    if (!areFieldsFilled) {
+      setState(() {
+        _errorMessage = 'Please fill in all fields.';
+      });
+      return;
+    }
+
+    bool isPasswordMatch =
+        _passwordController.text == _confirmPasswordController.text;
+    if (!isPasswordMatch) {
+      setState(() {
+        _errorMessage = 'Passwords do not match.';
+      });
+      return;
+    }
+
+    try {
+      bool success = await ApiService.registerUser(
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        government: _government,
+        locationDescription: _locationDescriptionController.text,
+        phone: _phoneController.text,
+        password: _passwordController.text,
+        passwordConfirmation: _confirmPasswordController.text,
+      );
+
+      if (success) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to register. Please try again.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error: $e';
+      });
+    }
   }
 }
